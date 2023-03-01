@@ -9,6 +9,7 @@
  * 
  */
 const fs = require('fs')
+const path = require('path')
 const process = require('process')
 const ExcelJS = require('exceljs')
 const getGrades = require('./get-grades')
@@ -18,6 +19,7 @@ const toWorkSheet = async (file, sheetName = 'Sheet1') => {
     await workbook.xlsx.readFile(file)
     return workbook.getWorksheet(sheetName)
 }
+global.DIR = path.resolve(__dirname).replace(/\\/g, '/'); // Turn back slash to slash for cross-platform compat
 
     ;
 (async () => {
@@ -30,11 +32,12 @@ const toWorkSheet = async (file, sheetName = 'Sheet1') => {
         const COURSE = args[4]
         const YEAR = args[5]
 
-        const DIR = `c:/misbot/promotional-lists`.replace(/\/$/, '')
+
+        const TARGET_DIR = path.join(DIR, `promotional-lists`)
         const URL = `http://203.177.71.162/sias/`
 
-        if (!fs.existsSync(DIR)) {
-            fs.mkdirSync(DIR, { recursive: true })
+        if (!fs.existsSync(TARGET_DIR)) {
+            fs.mkdirSync(TARGET_DIR, { recursive: true })
         }
 
         const timeFmt = {
@@ -46,7 +49,7 @@ const toWorkSheet = async (file, sheetName = 'Sheet1') => {
         console.log(`Started ${(new Date()).toLocaleTimeString('fil-PH', timeFmt)}`)
         
         // LOAD MASTERLIST AND DOWNLOAD GRADES PER SEM
-        const worksheet = await getEnrollmentList([USERNAME, PASSWORD, COLLEGE, SEM, COURSE, YEAR, URL, DIR])
+        const worksheet = await getEnrollmentList([USERNAME, PASSWORD, COLLEGE, SEM, COURSE, YEAR, URL, TARGET_DIR])
         let rowCount = 0
         let gradeFiles = []
         let gradeStudents = []
@@ -81,7 +84,7 @@ const toWorkSheet = async (file, sheetName = 'Sheet1') => {
                 }
 
                 try {
-                    let filePath = await getGrades([USERNAME, PASSWORD, ID, SEM, URL, DIR, false])
+                    let filePath = await getGrades([USERNAME, PASSWORD, ID, SEM, URL, TARGET_DIR, false])
                     
                     console.log(`${rowCount} of ${worksheet.rowCount - START_ROW + 1} to ${filePath}`)
                     gradeFiles.push(filePath)
@@ -180,8 +183,8 @@ const toWorkSheet = async (file, sheetName = 'Sheet1') => {
         }
 
         //TODO: 1-4th year
-        await workbookOut.xlsx.writeFile(`${DIR}/promo-list-${COLLEGE}-${SEM}-${COURSE}-${YEAR}.xlsx`);
-        console.log(`Done. See ${DIR}/promo-list-${COLLEGE}-${SEM}-${COURSE}-${YEAR}.xlsx`)
+        await workbookOut.xlsx.writeFile(`${TARGET_DIR}/promo-list-${COLLEGE}-${SEM}-${COURSE}-${YEAR}.xlsx`);
+        console.log(`Done. See ${TARGET_DIR}/promo-list-${COLLEGE}-${SEM}-${COURSE}-${YEAR}.xlsx`)
         console.log(`Ended ${(new Date()).toLocaleTimeString('fil-PH', timeFmt)}`)
     } catch (error) {
         console.error(error)
